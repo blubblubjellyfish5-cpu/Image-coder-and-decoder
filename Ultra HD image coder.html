@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image ⇄ Audio Encoder/Decoder</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen text-white p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-5xl font-bold text-center mb-3 bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">
+            Image ⇄ Audio Converter
+        </h1>
+        <p class="text-center text-gray-300 mb-8">Transform images into audio and back again!</p>
+
+        <!-- Quality Selection -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 mb-6 shadow-2xl">
+            <label class="block text-xl font-semibold mb-3">Quality Settings</label>
+            <div class="flex gap-3 justify-center flex-wrap">
+                <label class="cursor-pointer">
+                    <input type="radio" name="quality" value="bad" class="peer sr-only">
+                    <div class="px-4 py-3 rounded-lg bg-white/5 border-2 border-white/20 peer-checked:bg-yellow-500 peer-checked:border-yellow-400 peer-checked:shadow-lg transition-all">
+                        <div class="font-bold text-sm">Bad</div>
+                        <div class="text-xs text-gray-300">64x64</div>
+                    </div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="quality" value="good" class="peer sr-only">
+                    <div class="px-4 py-3 rounded-lg bg-white/5 border-2 border-white/20 peer-checked:bg-green-500 peer-checked:border-green-400 peer-checked:shadow-lg transition-all">
+                        <div class="font-bold text-sm">Good</div>
+                        <div class="text-xs text-gray-300">256x256</div>
+                    </div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="quality" value="verygood" class="peer sr-only">
+                    <div class="px-4 py-3 rounded-lg bg-white/5 border-2 border-white/20 peer-checked:bg-blue-500 peer-checked:border-blue-400 peer-checked:shadow-lg transition-all">
+                        <div class="font-bold text-sm">Very Good</div>
+                        <div class="text-xs text-gray-300">512x512</div>
+                    </div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="quality" value="hd" checked class="peer sr-only">
+                    <div class="px-4 py-3 rounded-lg bg-white/5 border-2 border-white/20 peer-checked:bg-purple-500 peer-checked:border-purple-400 peer-checked:shadow-lg transition-all">
+                        <div class="font-bold text-sm">HD</div>
+                        <div class="text-xs text-gray-300">1024x1024</div>
+                    </div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="quality" value="ultrahd" class="peer sr-only">
+                    <div class="px-4 py-3 rounded-lg bg-white/5 border-2 border-white/20 peer-checked:bg-pink-500 peer-checked:border-pink-400 peer-checked:shadow-lg transition-all">
+                        <div class="font-bold text-sm">Ultra HD</div>
+                        <div class="text-xs text-gray-300">2048x2048</div>
+                    </div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="quality" value="lossless" class="peer sr-only">
+                    <div class="px-4 py-3 rounded-lg bg-white/5 border-2 border-white/20 peer-checked:bg-gradient-to-r peer-checked:from-orange-500 peer-checked:to-red-500 peer-checked:border-orange-400 peer-checked:shadow-lg transition-all">
+                        <div class="font-bold text-sm">Lossless</div>
+                        <div class="text-xs text-gray-300">Original Size</div>
+                    </div>
+                </label>
+            </div>
+            <p class="text-center text-xs text-gray-400 mt-3">⚠️ Higher quality = larger audio files & longer processing time</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Image to Audio Encoder -->
+            <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-2xl">
+                <h2 class="text-2xl font-bold mb-4 text-pink-400">📸 Image → 🔊 Audio</h2>
+                
+                <div class="mb-4">
+                    <label class="block mb-2 font-semibold">Upload Image:</label>
+                    <input type="file" id="imageInput" accept="image/*" 
+                           class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-500 file:text-white hover:file:bg-pink-600 file:cursor-pointer cursor-pointer bg-white/5 rounded-lg">
+                </div>
+
+                <div class="mb-4 h-48 bg-black/30 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img id="sourceImage" class="max-h-full max-w-full hidden">
+                    <span id="imagePlaceholder" class="text-gray-400">Image preview will appear here</span>
+                </div>
+
+                <button id="encodeBtn" disabled
+                        class="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    Encode to Audio
+                </button>
+
+                <div id="encodeProgress" class="mt-4 hidden">
+                    <div class="bg-white/20 rounded-full h-2 overflow-hidden">
+                        <div id="encodeProgressBar" class="bg-pink-500 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p class="text-sm text-center mt-2" id="encodeStatus">Processing...</p>
+                </div>
+
+                <div id="audioResult" class="mt-4 hidden">
+                    <audio id="encodedAudio" controls class="w-full mb-2"></audio>
+                    <button id="downloadAudio" 
+                            class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-all">
+                        Download Audio File
+                    </button>
+                </div>
+            </div>
+
+            <!-- Audio to Image Decoder -->
+            <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-2xl">
+                <h2 class="text-2xl font-bold mb-4 text-cyan-400">🔊 Audio → 📸 Image</h2>
+                
+                <div class="mb-4">
+                    <label class="block mb-2 font-semibold">Upload Audio:</label>
+                    <input type="file" id="audioInput" accept="audio/*" 
+                           class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600 file:cursor-pointer cursor-pointer bg-white/5 rounded-lg">
+                </div>
+
+                <div class="mb-4">
+                    <audio id="sourceAudio" controls class="w-full hidden"></audio>
+                    <div id="audioPlaceholder" class="text-gray-400 text-center py-4">Audio player will appear here</div>
+                </div>
+
+                <button id="decodeBtn" disabled
+                        class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    Decode to Image
+                </button>
+
+                <div id="decodeProgress" class="mt-4 hidden">
+                    <div class="bg-white/20 rounded-full h-2 overflow-hidden">
+                        <div id="decodeProgressBar" class="bg-cyan-500 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p class="text-sm text-center mt-2" id="decodeStatus">Processing...</p>
+                </div>
+
+                <div id="imageResult" class="mt-4 hidden">
+                    <div class="bg-black/30 rounded-lg p-2 mb-2 flex items-center justify-center">
+                        <canvas id="decodedImage" class="max-w-full max-h-64 cursor-pointer hover:opacity-80 transition-opacity" title="Click to view fullscreen"></canvas>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="previewImage" 
+                                class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2">
+                            <span>🔍</span> Preview Fullscreen
+                        </button>
+                        <button id="downloadImage" 
+                                class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2">
+                            <span>⬇️</span> Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 bg-white/5 backdrop-blur-lg rounded-xl p-4 text-sm text-gray-300">
+            <p class="font-semibold mb-2">ℹ️ How it works:</p>
+            <ul class="list-disc list-inside space-y-1">
+                <li>Images are resized based on quality setting and converted to pixel data</li>
+                <li>Each pixel's RGBA values are encoded as audio samples in a WAV file</li>
+                <li>Higher quality = larger resolution = more data = longer processing time</li>
+                <li>The audio file contains metadata (dimensions) + all pixel information</li>
+                <li>Decoding extracts the pixel data from audio and reconstructs the image</li>
+                <li><strong>Lossless mode</strong> preserves original image dimensions for perfect quality!</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Fullscreen Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-black/95 z-50 hidden flex items-center justify-center p-4">
+        <button id="closePreview" class="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-all z-10">
+            ✕ Close
+        </button>
+        <div id="previewControls" class="absolute top-4 left-4 bg-white/10 backdrop-blur-lg rounded-lg p-3 flex gap-2 z-10">
+            <button id="zoomIn" class="bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-lg transition-all">
+                🔍+ Zoom In
+            </button>
+            <button id="zoomOut" class="bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-lg transition-all">
+                🔍- Zoom Out
+            </button>
+            <button id="resetZoom" class="bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-lg transition-all">
+                ↺ Reset
+            </button>
+        </div>
+        <div id="previewContainer" class="overflow-auto max-w-full max-h-full">
+            <canvas id="previewCanvas" class="transition-transform duration-300"></canvas>
+        </div>
+        <div id="imageInfo" class="absolute bottom-4 left-4 bg-white/10 backdrop-blur-lg rounded-lg p-3 text-white text-sm">
+            <div id="imageDimensions"></div>
+        </div>
+    </div>
+
+    <script>
+        // Quality settings
+        const qualitySettings = {
+            bad: { size: 64, label: 'Bad (64x64)' },
+            good: { size: 256, label: 'Good (256x256)' },
+            verygood: { size: 512, label: 'Very Good (512x512)' },
+            hd: { size: 1024, label: 'HD (1024x1024)' },
+            ultrahd: { size: 2048, label: 'Ultra HD (2048x2048)' },
+            lossless: { size: -1, label: 'Lossless (Original Size)' }
+        };
+
+        let currentQuality = 'hd';
+        let encodedAudioBlob = null;
+        let loadedImage = null;
+        let currentZoom = 1;
+
+        // Update quality selection
+        document.querySelectorAll('input[name="quality"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentQuality = e.target.value;
+                console.log('Quality changed to:', currentQuality);
+            });
+        });
+
+        // Image input handler
+        document.getElementById('imageInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    loadedImage = img;
+                    document.getElementById('sourceImage').src = event.target.result;
+                    document.getElementById('sourceImage').classList.remove('hidden');
+                    document.getElementById('imagePlaceholder').classList.add('hidden');
+                    document.getElementById('encodeBtn').disabled = false;
+                    
+                    // Reset results
+                    document.getElementById('audioResult').classList.add('hidden');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Audio input handler
+        document.getElementById('audioInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const url = URL.createObjectURL(file);
+            const audio = document.getElementById('sourceAudio');
+            audio.src = url;
+            audio.classList.remove('hidden');
+            document.getElementById('audioPlaceholder').classList.add('hidden');
+            document.getElementById('decodeBtn').disabled = false;
+            
+            // Reset results
+            document.getElementById('imageResult').classList.add('hidden');
+        });
+
+        // Helper to update progress
+        function updateProgress(barId, statusId, percent, message) {
+            document.getElementById(barId).style.width = percent + '%';
+            document.getElementById(statusId).textContent = message;
+        }
+
+        // Helper to wait
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ENCODE: Image to Audio
+        document.getElementById('encodeBtn').addEventListener('click', async () => {
+            if (!loadedImage) {
+                alert('Please load an image first');
+                return;
+            }
+
+            const encodeBtn = document.getElementById('encodeBtn');
+            encodeBtn.disabled = true;
+
+            const progressDiv = document.getElementById('encodeProgress');
+            const resultDiv = document.getElementById('audioResult');
+            
+            progressDiv.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+
+            try {
+                updateProgress('encodeProgressBar', 'encodeStatus', 10, 'Preparing canvas...');
+                await wait(100);
+
+                // Get quality settings
+                const quality = qualitySettings[currentQuality];
+                let targetWidth, targetHeight;
+                
+                if (quality.size === -1) {
+                    // Lossless mode - use original dimensions
+                    targetWidth = loadedImage.width;
+                    targetHeight = loadedImage.height;
+                } else {
+                    // Fixed size mode - maintain aspect ratio or use square
+                    targetWidth = quality.size;
+                    targetHeight = quality.size;
+                }
+
+                // Create canvas and resize image
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
+                // Draw image on canvas (resized)
+                ctx.drawImage(loadedImage, 0, 0, targetWidth, targetHeight);
+
+                updateProgress('encodeProgressBar', 'encodeStatus', 25, 'Extracting pixel data...');
+                await wait(200);
+
+                // Get image data
+                const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+                const pixels = imageData.data; // RGBA array
+
+                console.log(`Image size: ${targetWidth}x${targetHeight}, Pixels: ${pixels.length} bytes`);
+
+                updateProgress('encodeProgressBar', 'encodeStatus', 40, 'Creating audio buffer...');
+                await wait(300);
+
+                // Create WAV file manually
+                const sampleRate = 44100;
+                
+                // We need to encode: width (4 bytes) + height (4 bytes) + pixel data
+                const headerSize = 8; // 2 x 4 bytes for width and height
+                const totalDataSize = headerSize + pixels.length;
+                
+                // Each byte becomes one 16-bit audio sample
+                const numSamples = totalDataSize;
+                
+                // Create WAV file
+                const wavBuffer = createWavFile(numSamples, sampleRate);
+                const dataView = new DataView(wavBuffer);
+                
+                // WAV header is 44 bytes, data starts at byte 44
+                let writePos = 44;
+                
+                updateProgress('encodeProgressBar', 'encodeStatus', 55, 'Encoding metadata...');
+                await wait(200);
+                
+                // Write width (4 bytes)
+                const widthBytes = new Uint8Array(4);
+                new DataView(widthBytes.buffer).setUint32(0, targetWidth, true);
+                for (let i = 0; i < 4; i++) {
+                    const sample = (widthBytes[i] / 255.0) * 65535 - 32768;
+                    dataView.setInt16(writePos, sample, true);
+                    writePos += 2;
+                }
+                
+                // Write height (4 bytes)
+                const heightBytes = new Uint8Array(4);
+                new DataView(heightBytes.buffer).setUint32(0, targetHeight, true);
+                for (let i = 0; i < 4; i++) {
+                    const sample = (heightBytes[i] / 255.0) * 65535 - 32768;
+                    dataView.setInt16(writePos, sample, true);
+                    writePos += 2;
+                }
+
+                updateProgress('encodeProgressBar', 'encodeStatus', 70, 'Encoding pixel data...');
+                await wait(200);
+                
+                // Write pixel data
+                const progressInterval = Math.floor(pixels.length / 20); // Update 20 times
+                for (let i = 0; i < pixels.length; i++) {
+                    // Convert byte (0-255) to 16-bit PCM sample (-32768 to 32767)
+                    const sample = (pixels[i] / 255.0) * 65535 - 32768;
+                    dataView.setInt16(writePos, sample, true);
+                    writePos += 2;
+                    
+                    // Update progress periodically
+                    if (i % progressInterval === 0) {
+                        const progress = 70 + (i / pixels.length) * 25;
+                        updateProgress('encodeProgressBar', 'encodeStatus', progress, 
+                            `Encoding pixels: ${Math.floor((i / pixels.length) * 100)}%`);
+                        await wait(10);
+                    }
+                }
+
+                updateProgress('encodeProgressBar', 'encodeStatus', 98, 'Finalizing audio file...');
+                await wait(200);
+
+                // Create blob and URL
+                encodedAudioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(encodedAudioBlob);
+
+                // Display audio player
+                const audioElement = document.getElementById('encodedAudio');
+                audioElement.src = audioUrl;
+                resultDiv.classList.remove('hidden');
+
+                updateProgress('encodeProgressBar', 'encodeStatus', 100, 'Complete! ✓');
+                await wait(1000);
+                progressDiv.classList.add('hidden');
+
+                console.log('Encoding complete!');
+
+            } catch (error) {
+                console.error('Encoding error:', error);
+                alert('Error encoding image: ' + error.message);
+                progressDiv.classList.add('hidden');
+            }
+
+            encodeBtn.disabled = false;
+        });
+
+        // DECODE: Audio to Image
+        document.getElementById('decodeBtn').addEventListener('click', async () => {
+            const audioFile = document.getElementById('audioInput').files[0];
+            if (!audioFile) {
+                alert('Please select an audio file first');
+                return;
+            }
+
+            const decodeBtn = document.getElementById('decodeBtn');
+            decodeBtn.disabled = true;
+
+            const progressDiv = document.getElementById('decodeProgress');
+            const resultDiv = document.getElementById('imageResult');
+            
+            progressDiv.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+
+            try {
+                updateProgress('decodeProgressBar', 'decodeStatus', 10, 'Loading audio file...');
+                await wait(100);
+
+                // Read the WAV file
+                const arrayBuffer = await audioFile.arrayBuffer();
+                const dataView = new DataView(arrayBuffer);
+
+                updateProgress('decodeProgressBar', 'decodeStatus', 25, 'Parsing WAV format...');
+                await wait(200);
+
+                // Verify WAV format
+                const riff = String.fromCharCode(
+                    dataView.getUint8(0),
+                    dataView.getUint8(1),
+                    dataView.getUint8(2),
+                    dataView.getUint8(3)
+                );
+                if (riff !== 'RIFF') {
+                    throw new Error('Not a valid WAV file');
+                }
+
+                // Audio data starts at byte 44 (standard WAV header)
+                let readPos = 44;
+
+                updateProgress('decodeProgressBar', 'decodeStatus', 40, 'Decoding metadata...');
+                await wait(200);
+
+                // Read width (4 bytes)
+                const widthBytes = new Uint8Array(4);
+                for (let i = 0; i < 4; i++) {
+                    const sample = dataView.getInt16(readPos, true);
+                    widthBytes[i] = Math.round(((sample + 32768) / 65535) * 255);
+                    readPos += 2;
+                }
+                const width = new DataView(widthBytes.buffer).getUint32(0, true);
+
+                // Read height (4 bytes)
+                const heightBytes = new Uint8Array(4);
+                for (let i = 0; i < 4; i++) {
+                    const sample = dataView.getInt16(readPos, true);
+                    heightBytes[i] = Math.round(((sample + 32768) / 65535) * 255);
+                    readPos += 2;
+                }
+                const height = new DataView(heightBytes.buffer).getUint32(0, true);
+
+                console.log(`Decoded dimensions: ${width}x${height}`);
+
+                // increased limit for newspapers and HD content
+                if (width <= 0 || height <= 0 || width > 10000 || height > 10000) {
+                    throw new Error(`Invalid dimensions: ${width}x${height}. Make sure you are using an audio file created by this tool at high quality.`);
+                }
+
+                updateProgress('decodeProgressBar', 'decodeStatus', 55, 'Decoding pixel data...');
+                await wait(200);
+
+                // Read pixel data
+                const pixelDataLength = width * height * 4; // RGBA
+                const pixels = new Uint8ClampedArray(pixelDataLength);
+
+                const progressInterval = Math.floor(pixelDataLength / 20);
+                for (let i = 0; i < pixelDataLength; i++) {
+                    const sample = dataView.getInt16(readPos, true);
+                    pixels[i] = Math.round(((sample + 32768) / 65535) * 255);
+                    readPos += 2;
+
+                    // Update progress periodically
+                    if (i % progressInterval === 0) {
+                        const progress = 55 + (i / pixelDataLength) * 40;
+                        updateProgress('decodeProgressBar', 'decodeStatus', progress,
+                            `Decoding pixels: ${Math.floor((i / pixelDataLength) * 100)}%`);
+                        await wait(10);
+                    }
+                }
+
+                updateProgress('decodeProgressBar', 'decodeStatus', 98, 'Reconstructing image...');
+                await wait(200);
+
+                // Create image on canvas
+                const canvas = document.getElementById('decodedImage');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+
+                const imageData = new ImageData(pixels, width, height);
+                ctx.putImageData(imageData, 0, 0);
+
+                resultDiv.classList.remove('hidden');
+
+                updateProgress('decodeProgressBar', 'decodeStatus', 100, 'Complete! ✓');
+                await wait(1000);
+                progressDiv.classList.add('hidden');
+
+                console.log('Decoding complete!');
+
+            } catch (error) {
+                console.error('Decoding error:', error);
+                alert('Error decoding audio: ' + error.message);
+                progressDiv.classList.add('hidden');
+            }
+
+            decodeBtn.disabled = false;
+        });
+
+        // Download audio file
+        document.getElementById('downloadAudio').addEventListener('click', () => {
+            if (!encodedAudioBlob) {
+                alert('No audio file to download');
+                return;
+            }
+
+            const url = URL.createObjectURL(encodedAudioBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `encoded-image-${currentQuality}-${Date.now()}.wav`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Download decoded image
+        document.getElementById('downloadImage').addEventListener('click', () => {
+            const canvas = document.getElementById('decodedImage');
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `decoded-image-${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        });
+
+        // Preview Image Fullscreen
+        document.getElementById('previewImage').addEventListener('click', openPreview);
+        document.getElementById('decodedImage').addEventListener('click', openPreview);
+
+        function openPreview() {
+            const sourceCanvas = document.getElementById('decodedImage');
+            const previewCanvas = document.getElementById('previewCanvas');
+            const modal = document.getElementById('previewModal');
+            
+            // Copy canvas content
+            previewCanvas.width = sourceCanvas.width;
+            previewCanvas.height = sourceCanvas.height;
+            const ctx = previewCanvas.getContext('2d');
+            ctx.drawImage(sourceCanvas, 0, 0);
+            
+            // Reset zoom
+            currentZoom = 1;
+            previewCanvas.style.transform = `scale(${currentZoom})`;
+            
+            // Show dimensions
+            document.getElementById('imageDimensions').textContent = 
+                `Resolution: ${sourceCanvas.width} × ${sourceCanvas.height} pixels`;
+            
+            // Show modal
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        document.getElementById('closePreview').addEventListener('click', () => {
+            const modal = document.getElementById('previewModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('previewModal');
+                if (!modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            }
+        });
+
+        // Close on click outside
+        document.getElementById('previewModal').addEventListener('click', (e) => {
+            if (e.target.id === 'previewModal') {
+                e.target.classList.add('hidden');
+                e.target.classList.remove('flex');
+            }
+        });
+
+        // Zoom controls
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            currentZoom = Math.min(currentZoom + 0.25, 5);
+            document.getElementById('previewCanvas').style.transform = `scale(${currentZoom})`;
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            currentZoom = Math.max(currentZoom - 0.25, 0.25);
+            document.getElementById('previewCanvas').style.transform = `scale(${currentZoom})`;
+        });
+
+        document.getElementById('resetZoom').addEventListener('click', () => {
+            currentZoom = 1;
+            document.getElementById('previewCanvas').style.transform = `scale(${currentZoom})`;
+        });
+
+        // Create WAV file buffer
+        function createWavFile(numSamples, sampleRate) {
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const bytesPerSample = bitsPerSample / 8;
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = numSamples * blockAlign;
+            const fileSize = 44 + dataSize;
+
+            const buffer = new ArrayBuffer(fileSize);
+            const view = new DataView(buffer);
+
+            // RIFF header
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, fileSize - 8, true);
+            writeString(view, 8, 'WAVE');
+
+            // fmt chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // fmt chunk size
+            view.setUint16(20, 1, true); // PCM format
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+
+            // data chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            return buffer;
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+    </script>
+</body>
+</html>
